@@ -7,7 +7,7 @@ npm i @rsksmart/rif-marketplace-notifications
 **Warning: Contracts in this repo are in alpha state. They have not been audited and are not ready for deployment to main net!
   There might (and most probably will) be changes in the future to its API and working. Also, no guarantees can be made about its stability, efficiency, and security at this stage.**
 
-## SubscriptionManager contract
+## NotificationsManager contract
 
 ## TypeScript typings
 
