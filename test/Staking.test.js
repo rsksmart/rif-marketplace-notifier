@@ -10,7 +10,7 @@ const { toBN, asciiToHex, padRight } = require('web3-utils')
 const expect = require('chai').expect
 
 const Staking = artifacts.require('Staking')
-const StorageManager = artifacts.require('NotificationManager')
+const NotificationsManager = artifacts.require('NotificationsManager')
 const ERC20 = artifacts.require('MockERC20')
 
 contract('Staking', ([randomPerson, staker]) => {
@@ -20,7 +20,7 @@ contract('Staking', ([randomPerson, staker]) => {
 
   beforeEach(async function () {
     // Deploy Storage Manager
-    notificationManager = await upgrades.deployProxy(NotificationManager, [], { unsafeAllowCustomTypes: true })
+    notificationManager = await upgrades.deployProxy(NotificationsManager, [], { unsafeAllowCustomTypes: true })
 
     // Deploy token
     token = await ERC20.new('myToken', 'mT', randomPerson, 100000, { from: randomPerson })
@@ -237,13 +237,11 @@ contract('Staking', ([randomPerson, staker]) => {
   })
 
   describe('unstakeNative', () => {
-    it.skip('should not unstake when storage offer active', async () => {
+    it.skip('should not unstake when has active subscriptions', async () => {
       const toStake = 5000
-      // set StorageOffer by staker
-      // await storageManager.setOffer(1000, [[10, 100]], [[10, 80]], [constants.ZERO_ADDRESS], [padRight(asciiToHex('testMessage'))], { from: staker })
-      // newAgreement by randomPerson
-      // await storageManager.newAgreement([asciiToHex('/ipfs/QmSomeHash')], staker, 100, 10, constants.ZERO_ADDRESS, 0, [], [], constants.ZERO_ADDRESS, { from: randomPerson, value: 2000 })
-      // stake
+
+      // TODO create subscription
+
       await staking.stake(0, constants.ZERO_ADDRESS, constants.ZERO_BYTES32, { from: staker, value: toStake, gasPrice: 0 })
       // attempt to unstake
       await expectRevert(staking.unstake(toStake, constants.ZERO_ADDRESS, constants.ZERO_BYTES32, { from: staker }), 'Staking: must have no utilized capacity in StorageManager')
@@ -256,7 +254,7 @@ contract('Staking', ([randomPerson, staker]) => {
       await expectRevert(staking.unstake(3000, constants.ZERO_ADDRESS, constants.ZERO_BYTES32, { from: staker }), 'SafeMath: subtraction overflow')
     })
 
-    it('should process an unstake when no active offer', async () => {
+    it('should process an unstake when no active subscriptions', async () => {
       const toStake = 5000
       const initialBalance = await balance.current(staker)
       await staking.stake(0, constants.ZERO_ADDRESS, constants.ZERO_BYTES32, { from: staker, value: toStake, gasPrice: 0 })
@@ -288,14 +286,12 @@ contract('Staking', ([randomPerson, staker]) => {
   })
 
   describe('unstakeToken', () => {
-    it.skip('should not unstake when storage offer active', async () => {
+    it.skip('should not unstake when has aactive subscriptions', async () => {
       const toStake = 5000
-      await token.approve(storageManager.address, 2000, { from: staker })
-      // set StorageOffer by staker
-      // await storageManager.setOffer(1000, [[10, 100]], [[10, 80]], [token.address], [padRight(asciiToHex('testMessage'))], { from: staker })
-      // newAgreement by randomPerson
-      // await storageManager.newAgreement([asciiToHex('/ipfs/QmSomeHash')], staker, 100, 10, token.address, 2000, [], [], token.address, { from: staker })
-      // approve
+      await token.approve(subscriptionsManager.address, 2000, { from: staker })
+
+      // TODO create subscription
+
       await token.approve(staking.address, toStake, { from: staker })
       // stake
       await staking.stake(toStake, token.address, constants.ZERO_BYTES32, { from: staker, gasPrice: 0 })
@@ -309,7 +305,7 @@ contract('Staking', ([randomPerson, staker]) => {
 
       await expectRevert(staking.unstake(3000, token.address, constants.ZERO_BYTES32, { from: staker }), 'SafeMath: subtraction overflow')
     })
-    it('should process an unstake when no active offer', async () => {
+    it('should process an unstake when no active subscriptions', async () => {
       const toStake = 5000
       const initialBalance = await token.balanceOf(staker)
       // approve
