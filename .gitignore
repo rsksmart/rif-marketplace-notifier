@@ -4,3 +4,6 @@ build
 types
 .openzeppelin
 .idea
+
+.eslintrc.js
+tsconfig.json
