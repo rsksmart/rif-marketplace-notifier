@@ -12,7 +12,22 @@ const NotificationManagerV2 = artifacts.require('NotificationsManagerV2')
 
 const ERC20 = artifacts.require('MockERC20')
 
+function fixSignature (signature) {
+  // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
+  // signature malleability if version is 0/1
+  // see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L465
+  let v = parseInt(signature.slice(130, 132), 16)
+
+  if (v < 27) {
+    v += 27
+  }
+  const vHex = v.toString(16)
+  return signature.slice(0, 130) + vHex
+}
+
 contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) => {
+  const subscription = { someDAta: 'test' }
+  const subscriptionHash = web3.utils.sha3(JSON.stringify(subscription))
   let notificationManager
   let token
 
@@ -61,6 +76,35 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) =>
       expectEvent(receipt, 'ProviderRegistered', {
         provider: Provider,
         url
+      })
+    })
+  })
+
+  describe('registerProvider', () => {
+    it('should be able to register provider', async () => {
+      const signature = fixSignature(await web3.eth.sign(subscriptionHash, Provider))
+
+      const url = 'testUrl'
+      const receipt = await notificationManager.registerProvider(url, { from: Provider })
+
+      expectEvent(receipt, 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        subscriptionHash,
+        Provider,
+        signature,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionHash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
       })
     })
   })
