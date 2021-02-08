@@ -21,6 +21,24 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
     // maps the provider addresses which can be used for providing notificaitons
     mapping(address => bool) public isWhitelistedProvider;
 
+    // maps of provider
+    mapping(address => Provider) public providerRegistry;
+
+    // Provider struct
+    struct Provider {
+        string url;
+        mapping (bytes => Subscription) subscriptions;
+    }
+
+    // Notification subscription plan struct
+    struct Subscription {
+        bytes hash;
+        bytes ProviderSignature;
+        uint256 balance;
+    }
+
+    event ProviderRegistered(address provider, string url);
+
     function initialize() public initializer {
       __Ownable_init();
       __Pausable_init();
@@ -64,5 +82,16 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
      */
     function unpause() public onlyOwner whenPaused {
         _unpause();
+    }
+
+    /**
+     * @dev Called by provider to register
+     * @param url Url to the provider notifier service
+     */
+    function registerProvider (string memory url) public whenNotPaused {
+        require(isWhitelistedProvider[msg.sender], 'NotificationsManager: provider is not whitelisted');
+        Provider storage provider = providerRegistry[msg.sender];
+        provider.url = url;
+        emit ProviderRegistered(msg.sender, url);
     }
 }

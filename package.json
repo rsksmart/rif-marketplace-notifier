@@ -36,7 +36,8 @@
     "compile": "truffle compile",
     "lint": "tasegir lint",
     "release": "tasegir release --no-docs --no-compile --no-test --no-build",
-    "prepublishOnly": "truffle compile && typechain --target=web3-v1 build/contracts/NotificationsManger.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/NotificationsManger.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/NotificationsManger.json && typechain --target=ethers-v4 build/contracts/NotificationsManger.json && typechain --target=web3-v1 build/contracts/Staking.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/Staking.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/Staking.json && typechain --target=ethers-v4 build/contracts/Staking.json"
+    "prepublishOnly": "truffle compile && typechain --target=web3-v1 build/contracts/NotificationsManger.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/NotificationsManger.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/NotificationsManger.json && typechain --target=ethers-v4 build/contracts/NotificationsManger.json && typechain --target=web3-v1 build/contracts/Staking.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/Staking.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/Staking.json && typechain --target=ethers-v4 build/contracts/Staking.json",
+    "tasegir:link": "ln -s ./node_modules/tasegir/src/config/tsconfig.json ./tsconfig.json && ln -s ./node_modules/tasegir/src/config/eslintrc.js ./.eslintrc.js"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.2.0",
