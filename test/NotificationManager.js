@@ -93,8 +93,8 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) =>
       })
 
       const receipt2 = await notificationManager.createSubscription(
-        subscriptionHash,
         Provider,
+        subscriptionHash,
         signature,
         constants.ZERO_ADDRESS,
         2,

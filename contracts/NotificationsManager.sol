@@ -34,6 +34,8 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
 
     // Notification subscription plan struct
     struct Subscription {
+        address token;
+        address consumer;
         bytes providerSignature;
         uint256 balance;
     }
@@ -41,7 +43,8 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
     event ProviderRegistered(address provider, string url);
     event SubscriptionCreated(bytes32 hash, address provider, address token, uint256 amount);
     event FundsWithdrawn(bytes32 hash, uint256 amount, address token);
-    event ReturnFunds(bytes32 hash, uint256 amount, address token);
+    event FundsRefund(bytes32 hash, uint256 amount, address token);
+    event FundsDeposit(bytes32 hash, uint256 amount, address token);
 
     function initialize() public initializer {
       __Ownable_init();
@@ -100,17 +103,78 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
     }
 
     /**
+     * @notice withdrawal funds for subscription
+     * @dev Called by Provider
+     * @param hash Hash of subscription SLA
+     * @param token The token from which you want withdraw. By convention: address(0) is the native currency
+     * @param amount The amount of tokens
+     */
+    function withdrawalFunds (
+        bytes32 hash,
+        address token,
+        uint256 amount
+    ) public whenNotPaused {
+        require(amount > 0, "NotificationsManager: Nothing to withdraw");
+        Provider storage provider = providerRegistry[msg.sender];
+        require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
+        Subscription storage subscription = provider.subscriptions[hash];
+        require(subscription.providerSignature.length != 0, "NotificationsManager: Subscription is not exist");
+        require(token == subscription.token, "NotificationsManager: Invalid token for subscription");
+        require(amount <= subscription.balance, "NotificationsManager: Amount is too big");
+
+        if(token == address(0)) {
+            (bool success,) = msg.sender.call{value: amount}("");
+            require(success, "Transfer failed.");
+        } else {
+            require(IERC20(token).transfer(msg.sender, amount), "NotificationsManager: Token transfer failed");
+        }
+        subscription.balance = subscription.balance.div(amount);
+        emit FundsWithdrawn(hash, amount, token);
+    }
+
+    /**
+     * @notice refund funds to consumer
+     * @dev Called by Provider
+     * @param hash Hash of subscription SLA
+     * @param token The token from which you want refund. By convention: address(0) is the native currency
+     * @param amount The amount of tokens
+     */
+    function refundFunds (
+        bytes32 hash,
+        address token,
+        uint256 amount
+    ) public whenNotPaused {
+        require(isWhitelistedToken[token], "NotificationsManager: not possible to interact with this token");
+        require(amount > 0, "NotificationsManager: Nothing to withdraw");
+        Provider storage provider = providerRegistry[msg.sender];
+        require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
+        Subscription storage subscription = provider.subscriptions[hash];
+        require(subscription.providerSignature.length != 0, "NotificationsManager: Subscription is not exist");
+        require(token == subscription.token, "NotificationsManager: Invalid token for subscription");
+        require(amount <= subscription.balance, "NotificationsManager: Amount is too big");
+
+        if(token == address(0)) {
+            (bool success,) = subscription.consumer.call{value: amount}("");
+            require(success, "Transfer failed.");
+        } else {
+            require(IERC20(token).transfer(subscription.consumer, amount), "NotificationsManager: Token transfer failed");
+        }
+        subscription.balance = subscription.balance.div(amount);
+        emit FundsRefund(hash, amount, token);
+    }
+
+    /**
      * @notice new Subscription for given Provider
      * @dev Called by CONSUMER to register
-     * @param hash Hash of subscription SLA
      * @param providerAddress Address of provider
+     * @param hash Hash of subscription SLA
      * @param sig Signature of provider
      * @param token The token in which you want to make the subscription. By convention: address(0) is the native currency
      * @param amount If token is set, this is the amount of tokens that is transferred
      */
     function createSubscription (
-        bytes32 hash,
         address providerAddress,
+        bytes32 hash,
         bytes memory sig,
         address token,
         uint256 amount
@@ -120,8 +184,9 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
         require(amount > 0 || msg.value > 0, "NotificationsManager: You should deposit funds to be able to create subscription");
         Provider storage provider = providerRegistry[providerAddress];
         require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
-        require(_recoverSigner(hash, sig) == providerAddress, 'NotificationsManager: Invalid signature');
         Subscription storage subscription = provider.subscriptions[hash];
+        require(subscription.consumer == address(0), "NotificationsManager: Subscription already exist");
+        require(_recoverSigner(hash, sig) == providerAddress, 'NotificationsManager: Invalid signature');
 
         if(token == address(0)) {
             subscription.balance = subscription.balance.add(msg.value);
@@ -131,8 +196,42 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
         }
 
         subscription.providerSignature = sig;
+        subscription.consumer = msg.sender;
+        subscription.token = token;
 
         emit SubscriptionCreated(hash, providerAddress, token, amount);
+    }
+
+    /**
+     * @notice deposit funds for subscription
+     * @dev Called by CONSUMER
+     * @param providerAddress Address of provider
+     * @param hash Hash of subscription SLA
+     * @param token The token from which you want deposit. By convention: address(0) is the native currency
+     * @param amount The amount of tokens
+     */
+    function depositFunds (
+        address providerAddress,
+        bytes32 hash,
+        address token,
+        uint256 amount
+    ) public payable whenNotPaused {
+        require(isWhitelistedProvider[providerAddress], "NotificationsManager: provider is not whitelisted");
+        require(isWhitelistedToken[token], "NotificationsManager: not possible to interact with this token");
+        require(amount > 0 || msg.value > 0, "NotificationsManager: Nothing to deposit");
+        Provider storage provider = providerRegistry[providerAddress];
+        require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
+        Subscription storage subscription = provider.subscriptions[hash];
+        require(subscription.providerSignature.length != 0, "NotificationsManager: Subscription is not exist");
+        require(token == subscription.token, "NotificationsManager: Invalid token for subscription");
+
+        if(token == address(0)) {
+            subscription.balance = subscription.balance.add(msg.value);
+        } else {
+            require(IERC20(token).transferFrom(msg.sender, address(this), amount), "NotificationsManager: not allowed to deposit tokens from token contract");
+            subscription.balance = subscription.balance.add(amount);
+        }
+        emit FundsDeposit(hash, amount, token);
     }
 
     /**
