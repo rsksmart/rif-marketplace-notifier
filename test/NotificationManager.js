@@ -90,6 +90,9 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
         url
       })
     })
+    it('should not be able to register provider without url', async () => {
+      await expectRevert(notificationManager.registerProvider('', { from: Provider }), 'NotificationsManager: URL can not be empty')
+    })
   })
 
   describe('createSubscription', () => {
@@ -391,12 +394,48 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
     })
   })
 
+  // TODO
+  // describe('withdrawalFunds')
+  // describe('refundFunds')
+
   describe('Pausable', () => {
     it('should not be able to register provider when paused', async () => {
       await notificationManager.pause({ from: Owner })
       expect(await notificationManager.paused()).to.be.eql(true)
       await expectRevert(
         notificationManager.registerProvider('testUrl', { from: Provider }),
+        'Pausable: paused'
+      )
+    })
+    it('should not be able to withdrawal  when paused', async () => {
+      await notificationManager.pause({ from: Owner })
+      expect(await notificationManager.paused()).to.be.eql(true)
+      await expectRevert(
+        notificationManager.withdrawalFunds(subscriptionHash, constants.ZERO_ADDRESS, 2, { from: Consumer }),
+        'Pausable: paused'
+      )
+    })
+    it('should not be able to refunds when paused', async () => {
+      await notificationManager.pause({ from: Owner })
+      expect(await notificationManager.paused()).to.be.eql(true)
+      await expectRevert(
+        notificationManager.refundFunds(subscriptionHash, constants.ZERO_ADDRESS, 2, { from: Consumer }),
+        'Pausable: paused'
+      )
+    })
+    it('should not be able to create subscription when paused', async () => {
+      await notificationManager.pause({ from: Owner })
+      expect(await notificationManager.paused()).to.be.eql(true)
+      await expectRevert(
+        notificationManager.createSubscription(Provider, subscriptionHash, signature, constants.ZERO_ADDRESS, 2, { from: Consumer }),
+        'Pausable: paused'
+      )
+    })
+    it('should not be able to create subscription when paused', async () => {
+      await notificationManager.pause({ from: Owner })
+      expect(await notificationManager.paused()).to.be.eql(true)
+      await expectRevert(
+        notificationManager.depositFunds(Provider, subscriptionHash, constants.ZERO_ADDRESS, 2, { from: Consumer }),
         'Pausable: paused'
       )
     })
@@ -409,7 +448,6 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
       expect(notificationManagerUpg.address).to.be.eq(notificationManager.address)
       expect(version).to.be.eq('V2')
     })
-
     it('should not allow non-owner to upgrade', async () => {
       await upgrades.admin.transferProxyAdminOwnership(Provider)
       await expectRevert.unspecified(
