@@ -183,7 +183,7 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
     ) public payable whenNotPaused {
         require(isWhitelistedProvider[providerAddress], "NotificationsManager: provider is not whitelisted");
         require(isWhitelistedToken[token], "NotificationsManager: not possible to interact with this token");
-        require(amount > 0 || msg.value > 0, "NotificationsManager: You should deposit funds to be able to create subscription");
+        require(amount > 0 && token != address(0) || token == address(0) && msg.value > 0, "NotificationsManager: You should deposit funds to be able to create subscription");
         Provider storage provider = providerRegistry[providerAddress];
         require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
         Subscription storage subscription = provider.subscriptions[hash];
@@ -220,7 +220,7 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
     ) public payable whenNotPaused {
         require(isWhitelistedProvider[providerAddress], "NotificationsManager: provider is not whitelisted");
         require(isWhitelistedToken[token], "NotificationsManager: not possible to interact with this token");
-        require(amount > 0 || msg.value > 0, "NotificationsManager: Nothing to deposit");
+        require(amount > 0 && token != address(0) || token == address(0) && msg.value > 0, "NotificationsManager: Nothing to deposit");
         Provider storage provider = providerRegistry[providerAddress];
         require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
         Subscription storage subscription = provider.subscriptions[hash];

@@ -161,7 +161,7 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
           subscriptionHash,
           signature,
           constants.ZERO_ADDRESS,
-          0,
+          1,
           { from: Consumer, value: 0 }
         ),
         'NotificationsManager: You should deposit funds to be able to create subscription'
@@ -173,7 +173,7 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
           signature,
           token.address,
           0,
-          { from: Consumer }
+          { from: Consumer, value: 1 }
         ),
         'NotificationsManager: You should deposit funds to be able to create subscription'
       )
@@ -329,6 +329,65 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
         amount: '3',
         token: token.address
       })
+    })
+    it('should not be able to deposit: provider is not whitelisted', async () => {
+      await expectRevert(
+        notificationManager.depositFunds(NotWhitelistedProvider, subscriptionHash, constants.ZERO_ADDRESS, 0, { from: Consumer }),
+        'NotificationsManager: provider is not whitelisted'
+      )
+    })
+    it('should not be able to deposit: token is not whitelisted', async () => {
+      await expectRevert(
+        notificationManager.depositFunds(Provider, subscriptionHash, Owner, 0, { from: Consumer }),
+        'NotificationsManager: not possible to interact with this token'
+      )
+    })
+    it('should not be able to deposit: amount < 0', async () => {
+      await expectRevert(
+        notificationManager.depositFunds(Provider, subscriptionHash, constants.ZERO_ADDRESS, 1, { from: Consumer }),
+        'NotificationsManager: Nothing to deposit'
+      )
+      await expectRevert(
+        notificationManager.depositFunds(Provider, subscriptionHash, token.address, 0, { from: Consumer, value: 1 }),
+        'NotificationsManager: Nothing to deposit'
+      )
+    })
+    it('should not be able to deposit: provider is not registered', async () => {
+      await expectRevert(
+        notificationManager.depositFunds(NotRegisteredProvider, subscriptionHash, constants.ZERO_ADDRESS, 0, { from: Consumer, value: 1 }),
+        'NotificationsManager: Provider is not registered'
+      )
+    })
+    it('should not be able to deposit: invalid token for subscription', async () => {
+      const signatureNative = fixSignature(await web3.eth.sign(subscriptionNativeHash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        subscriptionNativeHash,
+        signatureNative,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionNativeHash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      await expectRevert(notificationManager.depositFunds(
+        Provider,
+        subscriptionNativeHash,
+        token.address,
+        1,
+        { from: Consumer }
+      ),
+      'NotificationsManager: Invalid token for subscription')
     })
   })
 
