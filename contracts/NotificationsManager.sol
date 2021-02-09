@@ -95,8 +95,11 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
      * @dev Called by PROVIDER to register
      * @param url Url to the provider notifier service
      */
-    function registerProvider (string memory url) public whenNotPaused {
+    function registerProvider (
+        string memory url
+    ) public whenNotPaused {
         require(isWhitelistedProvider[msg.sender], 'NotificationsManager: provider is not whitelisted');
+        require(bytes(url).length != 0, 'NotificationsManager: URL can not be empty');
         Provider storage provider = providerRegistry[msg.sender];
         provider.url = url;
         emit ProviderRegistered(msg.sender, url);
@@ -144,8 +147,7 @@ contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
         address token,
         uint256 amount
     ) public whenNotPaused {
-        require(isWhitelistedToken[token], "NotificationsManager: not possible to interact with this token");
-        require(amount > 0, "NotificationsManager: Nothing to withdraw");
+        require(amount > 0, "NotificationsManager: Nothing to refund");
         Provider storage provider = providerRegistry[msg.sender];
         require(bytes(provider.url).length != 0, "NotificationsManager: Provider is not registered");
         Subscription storage subscription = provider.subscriptions[hash];

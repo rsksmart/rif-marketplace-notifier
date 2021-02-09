@@ -25,11 +25,12 @@ function fixSignature (signature) {
   return signature.slice(0, 130) + vHex
 }
 
-contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) => {
+contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvider, NotWhitelistedProvider]) => {
   const subscription = { someDAta: 'test' }
   const subscriptionHash = web3.utils.sha3(JSON.stringify(subscription))
   let notificationManager
   let token
+  let signature
 
   beforeEach(async function () {
     notificationManager = await upgrades.deployProxy(NotificationManager, [], { unsafeAllowCustomTypes: true })
@@ -40,31 +41,42 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) =>
     await notificationManager.setWhitelistedTokens(token.address, true, { from: Owner })
 
     await notificationManager.setWhitelistedProvider(Provider, true, { from: Owner })
+    await notificationManager.setWhitelistedProvider(NotRegisteredProvider, true, { from: Owner })
 
     await token.transfer(Consumer, 10000, { from: Owner })
+
+    signature = fixSignature(await web3.eth.sign(subscriptionHash, Provider))
   })
 
   describe('White list of providers', () => {
     it('should not be able to register provider if not whitelisted', async () => {
-      await expectRevert(notificationManager.registerProvider('testUrl', { from: Provider2 }),
+      await expectRevert(notificationManager.registerProvider('testUrl', { from: NotWhitelistedProvider }),
+        'NotificationsManager: provider is not whitelisted'
+      )
+    })
+    it('should not be able to create subscription for not whitelisted provider', async () => {
+      await expectRevert(notificationManager.createSubscription(NotWhitelistedProvider, subscriptionHash, signature, constants.ZERO_ADDRESS, 0, { from: NotWhitelistedProvider, value: 1 }),
+        'NotificationsManager: provider is not whitelisted'
+      )
+    })
+    it('should not be able to deposit for subscription for not whitelisted provider', async () => {
+      await expectRevert(notificationManager.depositFunds(NotWhitelistedProvider, subscriptionHash, constants.ZERO_ADDRESS, 0, { from: NotWhitelistedProvider, value: 1 }),
         'NotificationsManager: provider is not whitelisted'
       )
     })
     it('should not be able to whitelist provider by not owner', async () => {
-      await expectRevert(notificationManager.setWhitelistedProvider(Provider2, true, { from: Provider2 }), 'Ownable: caller is not the owner')
+      await expectRevert(notificationManager.setWhitelistedProvider(NotWhitelistedProvider, true, { from: NotWhitelistedProvider }), 'Ownable: caller is not the owner')
     })
     it('should be able to register provider by whitelisted provider', async () => {
-      await notificationManager.setWhitelistedProvider(Provider2, true, { from: Owner })
+      await notificationManager.setWhitelistedProvider(Provider, true, { from: Owner })
 
       const url = 'testUrl'
-      const receipt = await notificationManager.registerProvider(url, { from: Provider2 })
+      const receipt = await notificationManager.registerProvider(url, { from: Provider })
 
       expectEvent(receipt, 'ProviderRegistered', {
-        provider: Provider2,
+        provider: Provider,
         url
       })
-
-      await notificationManager.setWhitelistedProvider(Provider2, false, { from: Owner })
     })
   })
 
@@ -80,10 +92,8 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) =>
     })
   })
 
-  describe('registerProvider', () => {
-    it('should be able to register provider', async () => {
-      const signature = fixSignature(await web3.eth.sign(subscriptionHash, Provider))
-
+  describe('createSubscription', () => {
+    it('should be able to create subscription', async () => {
       const url = 'testUrl'
       const receipt = await notificationManager.registerProvider(url, { from: Provider })
 
@@ -105,6 +115,219 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, Provider2]) =>
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2'
+      })
+    })
+    it('should be able to create subscription (ERC20)', async () => {
+      const url = 'testUrl'
+
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await token.approve(notificationManager.address, 1, { from: Consumer })
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        subscriptionHash,
+        signature,
+        token.address,
+        1,
+        { from: Consumer }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionHash,
+        provider: Provider,
+        token: token.address,
+        amount: '1'
+      })
+    })
+    it('should not be able to create subscription: token not whitelisted', async () => {
+      await expectRevert(
+        notificationManager.createSubscription(
+          Provider,
+          subscriptionHash,
+          signature,
+          Owner,
+          1,
+          { from: Consumer }
+        ),
+        'NotificationsManager: not possible to interact with this token'
+      )
+    })
+    it('should not be able to create subscription: amount < 0', async () => {
+      await expectRevert(
+        notificationManager.createSubscription(
+          Provider,
+          subscriptionHash,
+          signature,
+          constants.ZERO_ADDRESS,
+          0,
+          { from: Consumer, value: 0 }
+        ),
+        'NotificationsManager: You should deposit funds to be able to create subscription'
+      )
+      await expectRevert(
+        notificationManager.createSubscription(
+          Provider,
+          subscriptionHash,
+          signature,
+          token.address,
+          0,
+          { from: Consumer }
+        ),
+        'NotificationsManager: You should deposit funds to be able to create subscription'
+      )
+    })
+    it('should not be able to create subscription: not registered provider', async () => {
+      await expectRevert(
+        notificationManager.createSubscription(
+          NotRegisteredProvider,
+          subscriptionHash,
+          signature,
+          constants.ZERO_ADDRESS,
+          0,
+          { from: Consumer, value: 1 }
+        ),
+        'NotificationsManager: Provider is not registered'
+      )
+    })
+    it('should not be able to create subscription: subscription already exist', async () => {
+      const url = 'testUrl'
+      const subscriptionHash = web3.utils.sha3(JSON.stringify({ test: 'test' }))
+      const signature = fixSignature(await web3.eth.sign(subscriptionHash, Provider))
+      const receipt = await notificationManager.registerProvider(url, { from: Provider })
+
+      expectEvent(receipt, 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        subscriptionHash,
+        signature,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionHash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+      await expectRevert(
+        notificationManager.createSubscription(
+          Provider,
+          subscriptionHash,
+          signature,
+          constants.ZERO_ADDRESS,
+          2,
+          { from: Consumer, value: 2 }
+        ),
+        'NotificationsManager: Subscription already exist'
+      )
+    })
+    it('should not be able to create subscription: invalid signature', async () => {
+      const url = 'testUrl'
+      const subscriptionHash = web3.utils.sha3(JSON.stringify({ test: 'test' }))
+      const signature = fixSignature(await web3.eth.sign(subscriptionHash, Owner))
+      const receipt = await notificationManager.registerProvider(url, { from: Provider })
+
+      expectEvent(receipt, 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await expectRevert(
+        notificationManager.createSubscription(
+          Provider,
+          subscriptionHash,
+          signature,
+          constants.ZERO_ADDRESS,
+          2,
+          { from: Consumer, value: 2 }
+        ),
+        'NotificationsManager: Invalid signature'
+      )
+    })
+  })
+
+  describe('depositFunds', () => {
+    const subscriptionNativeHash = web3.utils.sha3(JSON.stringify({ testData: '1' }))
+    const subscriptionERC20Hash = web3.utils.sha3(JSON.stringify({ testData: '2' }))
+    const url = 'testUrl'
+
+    it('should be able to deposit: native', async () => {
+      const signatureNative = fixSignature(await web3.eth.sign(subscriptionNativeHash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        subscriptionNativeHash,
+        signatureNative,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionNativeHash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      const receipt = await notificationManager.depositFunds(
+        Provider,
+        subscriptionNativeHash,
+        constants.ZERO_ADDRESS,
+        1,
+        { from: Consumer, value: 1 }
+      )
+      expectEvent(receipt, 'FundsDeposit', {
+        hash: subscriptionNativeHash,
+        amount: '1',
+        token: constants.ZERO_ADDRESS
+      })
+    })
+    it('should be able to deposit: ERC20', async () => {
+      const signatureERC20 = fixSignature(await web3.eth.sign(subscriptionERC20Hash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await token.approve(notificationManager.address, 2, { from: Consumer })
+      const receipt = await notificationManager.createSubscription(
+        Provider,
+        subscriptionERC20Hash,
+        signatureERC20,
+        token.address,
+        2,
+        { from: Consumer }
+      )
+      expectEvent(receipt, 'SubscriptionCreated', {
+        hash: subscriptionERC20Hash,
+        provider: Provider,
+        token: token.address,
+        amount: '2'
+      })
+
+      await token.approve(notificationManager.address, 3, { from: Consumer })
+      const receipt2 = await notificationManager.depositFunds(
+        Provider,
+        subscriptionERC20Hash,
+        token.address,
+        3,
+        { from: Consumer }
+      )
+      expectEvent(receipt2, 'FundsDeposit', {
+        hash: subscriptionERC20Hash,
+        amount: '3',
+        token: token.address
       })
     })
   })
