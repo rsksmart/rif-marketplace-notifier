@@ -6,6 +6,7 @@ const {
   constants
 } = require('@openzeppelin/test-helpers')
 const expect = require('chai').expect
+const BigNumber = require('bignumber.js')
 
 const NotificationManager = artifacts.require('NotificationsManager')
 const NotificationManagerV2 = artifacts.require('NotificationsManagerV2')
@@ -25,9 +26,12 @@ function fixSignature (signature) {
   return signature.slice(0, 130) + vHex
 }
 
-contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvider, NotWhitelistedProvider]) => {
+contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvider, NotWhitelistedProvider]) => {
   const subscription = { someDAta: 'test' }
   const subscriptionHash = web3.utils.sha3(JSON.stringify(subscription))
+  const subscriptionNativeHash = web3.utils.sha3(JSON.stringify({ testData: '1' }))
+  const subscriptionERC20Hash = web3.utils.sha3(JSON.stringify({ testData: '2' }))
+  const url = 'testUrl'
   let notificationManager
   let token
   let signature
@@ -257,10 +261,6 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
   })
 
   describe('depositFunds', () => {
-    const subscriptionNativeHash = web3.utils.sha3(JSON.stringify({ testData: '1' }))
-    const subscriptionERC20Hash = web3.utils.sha3(JSON.stringify({ testData: '2' }))
-    const url = 'testUrl'
-
     it('should be able to deposit: native', async () => {
       const signatureNative = fixSignature(await web3.eth.sign(subscriptionNativeHash, Provider))
       expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
@@ -361,6 +361,16 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
         'NotificationsManager: Provider is not registered'
       )
     })
+    it('should not be able to deposit: subscription is not exist', async () => {
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+      await expectRevert(
+        notificationManager.depositFunds(Provider, subscriptionHash, constants.ZERO_ADDRESS, 0, { from: Consumer, value: 1 }),
+        'NotificationsManager: Subscription is not exist'
+      )
+    })
     it('should not be able to deposit: invalid token for subscription', async () => {
       const signatureNative = fixSignature(await web3.eth.sign(subscriptionNativeHash, Provider))
       expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
@@ -394,9 +404,344 @@ contract.only('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredP
     })
   })
 
-  // TODO
-  // describe('withdrawalFunds')
-  // describe('refundFunds')
+  describe('withdrawalFunds', () => {
+    it('should be able to withdrawal: native', async () => {
+      const signatureNative = fixSignature(await web3.eth.sign(subscriptionNativeHash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        subscriptionNativeHash,
+        signatureNative,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionNativeHash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      const receipt3 = await notificationManager.withdrawalFunds(
+        subscriptionNativeHash,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Provider }
+      )
+      expectEvent(receipt3, 'FundsWithdrawn', {
+        hash: subscriptionNativeHash,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+    })
+    it('should be able to withdrawal: ERC20', async () => {
+      const signatureERC20 = fixSignature(await web3.eth.sign(subscriptionERC20Hash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await token.approve(notificationManager.address, 2, { from: Consumer })
+      const receipt = await notificationManager.createSubscription(
+        Provider,
+        subscriptionERC20Hash,
+        signatureERC20,
+        token.address,
+        2,
+        { from: Consumer }
+      )
+      expectEvent(receipt, 'SubscriptionCreated', {
+        hash: subscriptionERC20Hash,
+        provider: Provider,
+        token: token.address,
+        amount: '2'
+      })
+
+      const tokenBalance = await token.balanceOf(Provider)
+      const receipt2 = await notificationManager.withdrawalFunds(
+        subscriptionERC20Hash,
+        token.address,
+        2,
+        { from: Provider }
+      )
+      expectEvent(receipt2, 'FundsWithdrawn', {
+        hash: subscriptionERC20Hash,
+        amount: '2',
+        token: token.address
+      })
+      const tokenBalanceAfter = await token.balanceOf(Provider)
+      expect(tokenBalanceAfter.toNumber()).to.be.eql(tokenBalance.toNumber() + 2)
+    })
+    it('should not be able to withdrawal: provider not registered', async () => {
+      await expectRevert(
+        notificationManager.withdrawalFunds(subscriptionNativeHash, constants.ZERO_ADDRESS, 1, { from: Consumer }),
+        'NotificationsManager: Provider is not registered'
+      )
+    })
+    it('should not be able to withdrawal: amount < 0', async () => {
+      await expectRevert(
+        notificationManager.withdrawalFunds(subscriptionNativeHash, constants.ZERO_ADDRESS, 0, { from: Consumer }),
+        'NotificationsManager: Nothing to withdraw'
+      )
+    })
+    it('should not be able to withdrawal: subscription is not exist', async () => {
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await expectRevert(
+        notificationManager.withdrawalFunds(
+          subscriptionNativeHash,
+          constants.ZERO_ADDRESS,
+          2,
+          { from: Provider }
+        ),
+        'NotificationsManager: Subscription is not exist')
+    })
+    it('should not be able to withdrawal: invalid token', async () => {
+      const hash = web3.utils.sha3(JSON.stringify({ test: '123' }))
+      const signature = fixSignature(await web3.eth.sign(hash, Provider))
+
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        hash,
+        signature,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: hash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      await expectRevert(
+        notificationManager.withdrawalFunds(
+          hash,
+          token.address,
+          2,
+          { from: Provider }
+        ),
+        'NotificationsManager: Invalid token for subscription')
+    })
+    it('should not be able to withdrawal: amount > subscription.balance', async () => {
+      const hash = web3.utils.sha3(JSON.stringify({ test: '1234' }))
+      const signature = fixSignature(await web3.eth.sign(hash, Provider))
+
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        hash,
+        signature,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: hash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      await expectRevert(
+        notificationManager.withdrawalFunds(
+          hash,
+          constants.ZERO_ADDRESS,
+          10,
+          { from: Provider }
+        ),
+        'NotificationsManager: Amount is too big')
+    })
+  })
+
+  describe('refundFunds', () => {
+    it('should be able to refund: native', async () => {
+      const signatureNative = fixSignature(await web3.eth.sign(subscriptionNativeHash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        subscriptionNativeHash,
+        signatureNative,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: subscriptionNativeHash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      const balanceBefore = await web3.eth.getBalance(Consumer)
+      const receipt3 = await notificationManager.refundFunds(
+        subscriptionNativeHash,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Provider }
+      )
+      expectEvent(receipt3, 'FundsRefund', {
+        hash: subscriptionNativeHash,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+      const balanceAfter = await web3.eth.getBalance(Consumer)
+      expect(balanceAfter).to.be.eql(new BigNumber(balanceBefore).plus(2).toString())
+    })
+    it('should be able to refund: ERC20', async () => {
+      const signatureERC20 = fixSignature(await web3.eth.sign(subscriptionERC20Hash, Provider))
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await token.approve(notificationManager.address, 2, { from: Consumer })
+      const receipt = await notificationManager.createSubscription(
+        Provider,
+        subscriptionERC20Hash,
+        signatureERC20,
+        token.address,
+        2,
+        { from: Consumer }
+      )
+      expectEvent(receipt, 'SubscriptionCreated', {
+        hash: subscriptionERC20Hash,
+        provider: Provider,
+        token: token.address,
+        amount: '2'
+      })
+
+      const tokenBalance = await token.balanceOf(Consumer)
+      const receipt2 = await notificationManager.refundFunds(
+        subscriptionERC20Hash,
+        token.address,
+        2,
+        { from: Provider }
+      )
+      expectEvent(receipt2, 'FundsRefund', {
+        hash: subscriptionERC20Hash,
+        amount: '2',
+        token: token.address
+      })
+      const tokenBalanceAfter = await token.balanceOf(Consumer)
+      expect(tokenBalanceAfter.toNumber()).to.be.eql(tokenBalance.toNumber() + 2)
+    })
+    it('should not be able to refund: provider not registered', async () => {
+      await expectRevert(
+        notificationManager.refundFunds(subscriptionNativeHash, constants.ZERO_ADDRESS, 1, { from: Consumer }),
+        'NotificationsManager: Provider is not registered'
+      )
+    })
+    it('should not be able to refund: amount < 0', async () => {
+      await expectRevert(
+        notificationManager.refundFunds(subscriptionNativeHash, constants.ZERO_ADDRESS, 0, { from: Consumer }),
+        'NotificationsManager: Nothing to refund'
+      )
+    })
+    it('should not be able to refund: subscription is not exist', async () => {
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await expectRevert(
+        notificationManager.refundFunds(
+          subscriptionNativeHash,
+          constants.ZERO_ADDRESS,
+          2,
+          { from: Provider }
+        ),
+        'NotificationsManager: Subscription is not exist')
+    })
+    it('should not be able to refund: invalid token', async () => {
+      const hash = web3.utils.sha3(JSON.stringify({ test: '123' }))
+      const signature = fixSignature(await web3.eth.sign(hash, Provider))
+
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        hash,
+        signature,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: hash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      await expectRevert(
+        notificationManager.refundFunds(
+          hash,
+          token.address,
+          2,
+          { from: Provider }
+        ),
+        'NotificationsManager: Invalid token for subscription')
+    })
+    it('should not be able to refund: amount > subscription.balance', async () => {
+      const hash = web3.utils.sha3(JSON.stringify({ test: '1234' }))
+      const signature = fixSignature(await web3.eth.sign(hash, Provider))
+
+      expectEvent(await notificationManager.registerProvider(url, { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      const receipt2 = await notificationManager.createSubscription(
+        Provider,
+        hash,
+        signature,
+        constants.ZERO_ADDRESS,
+        2,
+        { from: Consumer, value: 2 }
+      )
+      expectEvent(receipt2, 'SubscriptionCreated', {
+        hash: hash,
+        provider: Provider,
+        token: constants.ZERO_ADDRESS,
+        amount: '2'
+      })
+
+      await expectRevert(
+        notificationManager.refundFunds(
+          hash,
+          constants.ZERO_ADDRESS,
+          10,
+          { from: Provider }
+        ),
+        'NotificationsManager: Amount is too big')
+    })
+  })
 
   describe('Pausable', () => {
     it('should not be able to register provider when paused', async () => {

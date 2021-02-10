@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
 
 /// @title NotificationsManager
 /// @author Nazar Duchak <nazar@iovlabs.org>
-contract NotificationsManager is OwnableUpgradeSafe, PausableUpgradeSafe {
+contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
 
-    using ECDSA for bytes32;
+    using ECDSAUpgradeable for bytes32;
     using SafeMath for uint256;
     using SafeMath for uint128;
     using SafeMath for uint64;

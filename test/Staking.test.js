@@ -6,7 +6,7 @@ const {
   constants
 } = require('@openzeppelin/test-helpers')
 const upgrades = require('@openzeppelin/truffle-upgrades')
-const { toBN, asciiToHex, padRight } = require('web3-utils')
+const { toBN } = require('web3-utils')
 const expect = require('chai').expect
 
 const Staking = artifacts.require('Staking')

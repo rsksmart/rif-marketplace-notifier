@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.6.12;
+pragma solidity 0.7.6;
 
 import "./NotificationsManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -32,7 +32,7 @@ contract Staking is Ownable {
     @notice constructor of the contract
     @param _notificationsManager the notificationsManager which uses this staking contract
     */
-    constructor(address _notificationsManager) public {
+    constructor(address _notificationsManager) {
         notificationsManager = NotificationsManager(_notificationsManager);
     }
 
