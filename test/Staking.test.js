@@ -13,7 +13,6 @@ const Staking = artifacts.require('Staking')
 const NotificationsManager = artifacts.require('NotificationsManager')
 const ERC20 = artifacts.require('MockERC20')
 
-// TODO for some reason node is hang up in the middle of tests
 contract('Staking', ([randomPerson, staker]) => {
   let token
   let notificationManager

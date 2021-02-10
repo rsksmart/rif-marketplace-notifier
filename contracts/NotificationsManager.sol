@@ -131,7 +131,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         } else {
             require(IERC20(token).transfer(msg.sender, amount), "NotificationsManager: Token transfer failed");
         }
-        subscription.balance = subscription.balance.div(amount);
+        subscription.balance = subscription.balance.sub(amount);
         emit FundsWithdrawn(hash, amount, token);
     }
 
@@ -161,7 +161,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         } else {
             require(IERC20(token).transfer(subscription.consumer, amount), "NotificationsManager: Token transfer failed");
         }
-        subscription.balance = subscription.balance.div(amount);
+        subscription.balance = subscription.balance.sub(amount);
         emit FundsRefund(hash, amount, token);
     }
 
