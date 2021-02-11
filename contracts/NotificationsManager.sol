@@ -246,6 +246,8 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
 
     /**
      * @notice deposit funds for subscription
+     * This function temporary unused and will be used in future releases
+     * It should be used to deposit more funds or fix the broken subscription(payed with wrong token)
      * @dev Called by CONSUMER
      * @param providerAddress Address of provider
      * @param hash Hash of subscription SLA
