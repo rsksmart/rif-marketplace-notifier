@@ -8,7 +8,7 @@ contract MockERC20 is ERC20 {
         string memory symbol,
         address initialAccount,
         uint256 initialBalance
-    ) payable ERC20(name, symbol) {
+    ) ERC20(name, symbol) {
         _mint(initialAccount, initialBalance);
     }
     function mint(address account, uint256 amount) public {
