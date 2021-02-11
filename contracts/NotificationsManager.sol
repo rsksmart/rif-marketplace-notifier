@@ -245,36 +245,6 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /**
-     * @notice deposit funds for subscription
-     * This function temporary unused and will be used in future releases
-     * It should be used to deposit more funds or fix the broken subscription(payed with wrong token)
-     * @dev Called by CONSUMER
-     * @param providerAddress Address of provider
-     * @param hash Hash of subscription SLA
-     * @param token The token from which you want deposit. By convention: address(0) is the native currency
-     * @param amount The amount of tokens
-     */
-    function depositFunds (
-        address providerAddress,
-        bytes32 hash,
-        address token,
-        uint256 amount
-    ) internal whenNotPaused whitelistedToken(token) isWhiteListedAndRegisteredProvider(providerAddress) {
-        require(amount > 0 && token != address(0) || token == address(0) && msg.value > 0, "NotificationsManager: Nothing to deposit");
-        Subscription storage subscription = providerRegistry[providerAddress].subscriptions[hash];
-        require(subscription.providerSignature.length != 0, "NotificationsManager: Subscription does not exist");
-        require(token == subscription.token, "NotificationsManager: Invalid token for subscription");
-
-        if(token == address(0)) {
-            subscription.balance = subscription.balance.add(msg.value);
-        } else {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-            subscription.balance = subscription.balance.add(amount);
-        }
-        emit FundsDeposit(hash, amount, token);
-    }
-
-    /**
      * @notice Internal helper function to recover address from signature
      * @param _messageHash Message
      * @param _signature Message signature
