@@ -4,6 +4,6 @@ const NotificationsManager = artifacts.require("NotificationsManager");
 const Staking = artifacts.require("Staking");
 
 module.exports = async function(deployer) {
-   const notificationsManager = await deployProxy(NotificationsManager, [], { deployer, unsafeAllowCustomTypes: true });
+   const notificationsManager = await deployProxy(NotificationsManager, [], { deployer });
    await deployer.deploy(Staking, notificationsManager.address);
 }

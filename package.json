@@ -40,19 +40,19 @@
     "tasegir:link": "ln -s ./node_modules/tasegir/src/config/tsconfig.json ./tsconfig.json && ln -s ./node_modules/tasegir/src/config/eslintrc.js ./.eslintrc.js"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^3.2.0",
-    "@openzeppelin/contracts-ethereum-package": "^3.0.0"
+    "@openzeppelin/contracts": "^3.4.0",
+    "@openzeppelin/contracts-upgradeable": "^3.4.0"
   },
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.6",
-    "@openzeppelin/truffle-upgrades": "^1.1.0",
+    "@openzeppelin/truffle-upgrades": "^1.4.0",
     "@typechain/ethers-v4": "^1.0.0",
     "@typechain/truffle-v4": "^2.0.3",
     "@typechain/truffle-v5": "^2.0.2",
     "@typechain/web3-v1": "^1.0.0",
     "chai": "^4.2.0",
     "tasegir": "^1.7.1",
-    "truffle": "^5.1.37",
+    "truffle": "5.1.56",
     "truffle-security": "^1.7.3",
     "typechain": "^2.0.0",
     "typescript": "^4.0.2",

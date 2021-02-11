@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.6.12;
+pragma solidity ^0.7.6;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 // mock class using ERC20
 contract MockERC20 is ERC20 {
@@ -8,7 +8,7 @@ contract MockERC20 is ERC20 {
         string memory symbol,
         address initialAccount,
         uint256 initialBalance
-    ) public payable ERC20(name, symbol) {
+    ) ERC20(name, symbol) {
         _mint(initialAccount, initialBalance);
     }
     function mint(address account, uint256 amount) public {
