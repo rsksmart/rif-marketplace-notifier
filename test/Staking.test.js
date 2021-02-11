@@ -20,7 +20,7 @@ contract('Staking', ([randomPerson, staker]) => {
 
   beforeEach(async function () {
     // Deploy Storage Manager
-    notificationManager = await upgrades.deployProxy(NotificationsManager, [], { unsafeAllowCustomTypes: true })
+    notificationManager = await upgrades.deployProxy(NotificationsManager, [])
 
     // Deploy token
     token = await ERC20.new('myToken', 'mT', randomPerson, 100000, { from: randomPerson })

@@ -37,7 +37,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
   let signature
 
   beforeEach(async function () {
-    notificationManager = await upgrades.deployProxy(NotificationManager, [], { unsafeAllowCustomTypes: true })
+    notificationManager = await upgrades.deployProxy(NotificationManager, [])
 
     token = await ERC20.new('myToken', 'mT', Owner, 100000, { from: Owner })
 
@@ -814,7 +814,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
 
   describe('Upgrades', () => {
     it('should allow owner to upgrade', async () => {
-      const notificationManagerUpg = await upgrades.upgradeProxy(notificationManager.address, NotificationManagerV2, { unsafeAllowCustomTypes: true })
+      const notificationManagerUpg = await upgrades.upgradeProxy(notificationManager.address, NotificationManagerV2)
       const version = await notificationManagerUpg.getVersion()
       expect(notificationManagerUpg.address).to.be.eq(notificationManager.address)
       expect(version).to.be.eq('V2')
@@ -822,7 +822,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
     it('should not allow non-owner to upgrade', async () => {
       await upgrades.admin.transferProxyAdminOwnership(Provider)
       await expectRevert.unspecified(
-        upgrades.upgradeProxy(notificationManager.address, NotificationManagerV2, { unsafeAllowCustomTypes: true })
+        upgrades.upgradeProxy(notificationManager.address, NotificationManagerV2)
       )
     })
   })
