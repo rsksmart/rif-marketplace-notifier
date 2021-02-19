@@ -12,7 +12,6 @@ import "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
 /// @title NotificationsManager
 /// @author Nazar Duchak <nazar@iovlabs.org>
 contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
-
     using ECDSAUpgradeable for bytes32;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -31,7 +30,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     // Provider struct
     struct Provider {
         string url;
-        mapping (bytes32 => Subscription) subscriptions;
+        mapping(bytes32 => Subscription) subscriptions;
     }
 
     // Notification subscription plan struct
@@ -43,21 +42,30 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     }
 
     event ProviderRegistered(address provider, string url);
-    event SubscriptionCreated(bytes32 hash, address provider, address token, uint256 amount);
+    event SubscriptionCreated(
+        bytes32 hash,
+        address provider,
+        address token,
+        uint256 amount
+    );
     event FundsWithdrawn(bytes32 hash, uint256 amount, address token);
     event FundsRefund(bytes32 hash, uint256 amount, address token);
     event FundsDeposit(bytes32 hash, uint256 amount, address token);
 
     function initialize() public initializer {
-      __Ownable_init();
-      __Pausable_init();
+        __Ownable_init();
+        __Pausable_init();
     }
 
     /**
      * @notice Check if provider has an active subscriptions
      * @param provider Address of provider
      */
-    function hasActiveSubscriptions(address provider) public pure returns (bool) {
+    function hasActiveSubscriptions(address provider)
+        public
+        pure
+        returns (bool)
+    {
         return false;
     }
 
@@ -66,7 +74,10 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @param token the token from whom you want to set the whitelisted
      * @param isWhiteListed whether you want to whitelist the token or put it from the whitelist.
      */
-    function setWhitelistedTokens(address token, bool isWhiteListed) public onlyOwner {
+    function setWhitelistedTokens(address token, bool isWhiteListed)
+        public
+        onlyOwner
+    {
         isWhitelistedToken[token] = isWhiteListed;
     }
 
@@ -75,7 +86,10 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @param providerAddress the providerAddress from whom you want to set the whitelisted
      * @param isWhiteListed whether you want to whitelist the provider or put it from the whitelist.
      */
-    function setWhitelistedProvider(address providerAddress, bool isWhiteListed) public onlyOwner {
+    function setWhitelistedProvider(address providerAddress, bool isWhiteListed)
+        public
+        onlyOwner
+    {
         isWhitelistedProvider[providerAddress] = isWhiteListed;
     }
 
@@ -94,24 +108,33 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /**
-    * @dev Require whitelisted provider
-    */
+     * @dev Require whitelisted provider
+     */
     function requireWhitelistedProvider(address providerAddress) internal view {
-        require(isWhitelistedProvider[providerAddress], "NotificationsManager: provider is not whitelisted");
+        require(
+            isWhitelistedProvider[providerAddress],
+            "NotificationsManager: provider is not whitelisted"
+        );
     }
 
     /**
-    * @dev Require registered provider
-    */
+     * @dev Require registered provider
+     */
     function requireRegisteredProvider(address providerAddress) internal view {
-        require(bytes(providerRegistry[providerAddress].url).length != 0, "NotificationsManager: Provider is not registered");
+        require(
+            bytes(providerRegistry[providerAddress].url).length != 0,
+            "NotificationsManager: Provider is not registered"
+        );
     }
 
     /**
      * @dev Require whitelisted token
      */
     modifier whitelistedToken(address token) {
-        require(isWhitelistedToken[token], "NotificationsManager: not possible to interact with this token");
+        require(
+            isWhitelistedToken[token],
+            "NotificationsManager: not possible to interact with this token"
+        );
         _;
     }
 
@@ -124,8 +147,8 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     }
 
     /**
-    * @dev Require registered provider
-    */
+     * @dev Require registered provider
+     */
     modifier isRegisteredProvider(address provider) {
         requireRegisteredProvider(provider);
         _;
@@ -144,10 +167,15 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @dev Called by PROVIDER to register
      * @param url Url to the provider notifier service
      */
-    function registerProvider (
-        string memory url
-    ) public whenNotPaused whitelistedProvider(msg.sender) {
-        require(bytes(url).length != 0, 'NotificationsManager: URL can not be empty');
+    function registerProvider(string memory url)
+        public
+        whenNotPaused
+        whitelistedProvider(msg.sender)
+    {
+        require(
+            bytes(url).length != 0,
+            "NotificationsManager: URL can not be empty"
+        );
         Provider storage provider = providerRegistry[msg.sender];
         provider.url = url;
         emit ProviderRegistered(msg.sender, url);
@@ -160,19 +188,29 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @param token The token from which you want withdraw. By convention: address(0) is the native currency
      * @param amount The amount of tokens
      */
-    function withdrawFunds (
+    function withdrawFunds(
         bytes32 hash,
         address token,
         uint256 amount
     ) public whenNotPaused isRegisteredProvider(msg.sender) {
         require(amount > 0, "NotificationsManager: Nothing to withdraw");
-        Subscription storage subscription = providerRegistry[msg.sender].subscriptions[hash];
-        require(subscription.providerSignature.length != 0, "NotificationsManager: Subscription does not exist");
-        require(token == subscription.token, "NotificationsManager: Invalid token for subscription");
-        require(amount <= subscription.balance, "NotificationsManager: Amount is too big");
+        Subscription storage subscription =
+            providerRegistry[msg.sender].subscriptions[hash];
+        require(
+            subscription.providerSignature.length != 0,
+            "NotificationsManager: Subscription does not exist"
+        );
+        require(
+            token == subscription.token,
+            "NotificationsManager: Invalid token for subscription"
+        );
+        require(
+            amount <= subscription.balance,
+            "NotificationsManager: Amount is too big"
+        );
 
-        if(token == address(0)) {
-            (bool success,) = msg.sender.call{value: amount}("");
+        if (token == address(0)) {
+            (bool success, ) = msg.sender.call{value: amount}("");
             require(success, "Transfer failed.");
         } else {
             IERC20(token).safeTransfer(msg.sender, amount);
@@ -188,19 +226,29 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @param token The token from which you want refund. By convention: address(0) is the native currency
      * @param amount The amount of tokens
      */
-    function refundFunds (
+    function refundFunds(
         bytes32 hash,
         address token,
         uint256 amount
     ) public whenNotPaused isRegisteredProvider(msg.sender) {
         require(amount > 0, "NotificationsManager: Nothing to refund");
-        Subscription storage subscription = providerRegistry[msg.sender].subscriptions[hash];
-        require(subscription.providerSignature.length != 0, "NotificationsManager: Subscription does not exist");
-        require(token == subscription.token, "NotificationsManager: Invalid token for subscription");
-        require(amount <= subscription.balance, "NotificationsManager: Amount is too big");
+        Subscription storage subscription =
+            providerRegistry[msg.sender].subscriptions[hash];
+        require(
+            subscription.providerSignature.length != 0,
+            "NotificationsManager: Subscription does not exist"
+        );
+        require(
+            token == subscription.token,
+            "NotificationsManager: Invalid token for subscription"
+        );
+        require(
+            amount <= subscription.balance,
+            "NotificationsManager: Amount is too big"
+        );
 
-        if(token == address(0)) {
-            (bool success,) = subscription.consumer.call{value: amount}("");
+        if (token == address(0)) {
+            (bool success, ) = subscription.consumer.call{value: amount}("");
             require(success, "Transfer failed.");
         } else {
             IERC20(token).safeTransfer(subscription.consumer, amount);
@@ -218,19 +266,36 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @param token The token in which you want to make the subscription. By convention: address(0) is the native currency
      * @param amount If token is set, this is the amount of tokens that is transferred
      */
-    function createSubscription (
+    function createSubscription(
         address providerAddress,
         bytes32 hash,
         bytes memory sig,
         address token,
         uint256 amount
-    ) public payable whenNotPaused whitelistedToken(token) isWhiteListedAndRegisteredProvider(providerAddress) {
-        require(amount > 0 && token != address(0) || token == address(0) && msg.value > 0, "NotificationsManager: You should deposit funds to be able to create subscription");
-        Subscription storage subscription = providerRegistry[providerAddress].subscriptions[hash];
-        require(subscription.consumer == address(0), "NotificationsManager: Subscription already exists");
-        require(_recoverSigner(hash, sig) == providerAddress, 'NotificationsManager: Invalid signature');
+    )
+        public
+        payable
+        whenNotPaused
+        whitelistedToken(token)
+        isWhiteListedAndRegisteredProvider(providerAddress)
+    {
+        require(
+            (amount > 0 && token != address(0)) ||
+                (token == address(0) && msg.value > 0),
+            "NotificationsManager: You should deposit funds to be able to create subscription"
+        );
+        Subscription storage subscription =
+            providerRegistry[providerAddress].subscriptions[hash];
+        require(
+            subscription.consumer == address(0),
+            "NotificationsManager: Subscription already exists"
+        );
+        require(
+            _recoverSigner(hash, sig) == providerAddress,
+            "NotificationsManager: Invalid signature"
+        );
 
-        if(token == address(0)) {
+        if (token == address(0)) {
             subscription.balance = subscription.balance.add(msg.value);
         } else {
             IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
@@ -250,7 +315,11 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
      * @param _signature Message signature
      * @return address Address of signer
      */
-    function _recoverSigner(bytes32 _messageHash, bytes memory _signature) internal pure returns (address) {
+    function _recoverSigner(bytes32 _messageHash, bytes memory _signature)
+        internal
+        pure
+        returns (address)
+    {
         // This recreates the message hash that was signed on the client.
         bytes32 ethMessageHash = _messageHash.toEthSignedMessageHash();
 
