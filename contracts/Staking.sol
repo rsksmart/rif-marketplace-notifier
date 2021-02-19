@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @author Nazar Duchak <nazar@iovlabs.org>
 /// @notice implements the ERC900 interface, with some small modifications. The contract also handles native tokens.
 contract Staking is Ownable {
-
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -25,14 +24,26 @@ contract Staking is Ownable {
     // maps the tokenAddresses which can be used with this contract. By convention, address(0) is the native token.
     mapping(address => bool) public isWhitelistedToken;
 
-    event Staked(address indexed user, uint256 amount, uint256 total, address token, bytes data);
-    event Unstaked(address indexed user, uint256 amount, uint256 total, address token, bytes data);
+    event Staked(
+        address indexed user,
+        uint256 amount,
+        uint256 total,
+        address token,
+        bytes data
+    );
+    event Unstaked(
+        address indexed user,
+        uint256 amount,
+        uint256 total,
+        address token,
+        bytes data
+    );
 
     /**
     @notice constructor of the contract
     @param _notificationsManager the notificationsManager which uses this staking contract
     */
-    constructor(address _notificationsManager) {
+    constructor(address _notificationsManager) public {
         notificationsManager = NotificationsManager(_notificationsManager);
     }
 
@@ -40,7 +51,10 @@ contract Staking is Ownable {
     @notice set Notifications Manager contract
     @param _notificationsManager the notificationsManager which uses this staking contract
     */
-    function setNotificationsManager(address _notificationsManager) public onlyOwner {
+    function setNotificationsManager(address _notificationsManager)
+        public
+        onlyOwner
+    {
         notificationsManager = NotificationsManager(_notificationsManager);
     }
 
@@ -49,7 +63,10 @@ contract Staking is Ownable {
     @param token the token from whom you want to set the whitelisted
     @param isWhiteListed whether you want to whitelist the token or put it from the whitelist.
     */
-    function setWhitelistedTokens (address token, bool isWhiteListed) public onlyOwner {
+    function setWhitelistedTokens(address token, bool isWhiteListed)
+        public
+        onlyOwner
+    {
         isWhitelistedToken[token] = isWhiteListed;
     }
 
@@ -61,7 +78,11 @@ contract Staking is Ownable {
     @param token Token address
     @param data should be disregarded for the current deployment
     */
-    function stake(uint256 amount, address token, bytes memory data) public payable {
+    function stake(
+        uint256 amount,
+        address token,
+        bytes memory data
+    ) public payable {
         stakeFor(amount, msg.sender, token, data);
     }
 
@@ -74,18 +95,37 @@ contract Staking is Ownable {
     @param tokenAddress Token address
     @param data should be disregarded for the current deployment
      */
-    function stakeFor(uint256 amount, address user, address tokenAddress, bytes memory data) public payable {
-        require(isInWhiteList(tokenAddress), "Staking: not possible to interact with this token");
+    function stakeFor(
+        uint256 amount,
+        address user,
+        address tokenAddress,
+        bytes memory data
+    ) public payable {
+        require(
+            isInWhiteList(tokenAddress),
+            "Staking: not possible to interact with this token"
+        );
         // disregard passed-in amount
-        if(_isNativeToken(tokenAddress)) {
+        if (_isNativeToken(tokenAddress)) {
             amount = msg.value;
             tokenAddress = address(0);
         } else {
-            IERC20(tokenAddress).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(tokenAddress).safeTransferFrom(
+                msg.sender,
+                address(this),
+                amount
+            );
         }
-        _amountStaked[user][tokenAddress] = _amountStaked[user][tokenAddress].add(amount);
+        _amountStaked[user][tokenAddress] = _amountStaked[user][tokenAddress]
+            .add(amount);
         _totalStaked[tokenAddress] = _totalStaked[tokenAddress].add(amount);
-        emit Staked(user, amount, _amountStaked[user][tokenAddress], tokenAddress, data);
+        emit Staked(
+            user,
+            amount,
+            _amountStaked[user][tokenAddress],
+            tokenAddress,
+            data
+        );
     }
 
     /**
@@ -96,39 +136,62 @@ contract Staking is Ownable {
     @param tokenAddress Token address
     @param data should be disregarded for the current deployment
      */
-    function unstake(uint256 amount, address tokenAddress, bytes memory data) public {
-        require(isInWhiteList(tokenAddress), "Staking: not possible to interact with this token");
+    function unstake(
+        uint256 amount,
+        address tokenAddress,
+        bytes memory data
+    ) public {
+        require(
+            isInWhiteList(tokenAddress),
+            "Staking: not possible to interact with this token"
+        );
         // only allow unstake if there is no utilized capacity
-        require(!notificationsManager.hasActiveSubscriptions(msg.sender), "Staking: must have no active subscriptions in NotificationsManager");
-        if(_isNativeToken(tokenAddress)) {
-            (bool success,) = msg.sender.call{value: amount}("");
+        require(
+            !notificationsManager.hasActiveSubscriptions(msg.sender),
+            "Staking: must have no active subscriptions in NotificationsManager"
+        );
+        if (_isNativeToken(tokenAddress)) {
+            (bool success, ) = msg.sender.call{value: amount}("");
             require(success, "Transfer failed.");
         } else {
             IERC20(tokenAddress).safeTransfer(msg.sender, amount);
         }
-        _amountStaked[msg.sender][tokenAddress] = _amountStaked[msg.sender][tokenAddress].sub(amount);
+        _amountStaked[msg.sender][tokenAddress] = _amountStaked[msg.sender][
+            tokenAddress
+        ]
+            .sub(amount);
         _totalStaked[tokenAddress] = _totalStaked[tokenAddress].sub(amount);
-        emit Unstaked(msg.sender, amount, _amountStaked[msg.sender][tokenAddress], tokenAddress, data);
+        emit Unstaked(
+            msg.sender,
+            amount,
+            _amountStaked[msg.sender][tokenAddress],
+            tokenAddress,
+            data
+        );
     }
 
     /**
     @notice return true if token whitelisted
      */
-    function isInWhiteList (address token) public view returns (bool) {
+    function isInWhiteList(address token) public view returns (bool) {
         return isWhitelistedToken[token];
     }
 
     /**
     @notice returns the amount staked for the specific token
     */
-    function totalStaked (address token) public view returns (uint256) {
+    function totalStaked(address token) public view returns (uint256) {
         return _totalStaked[token];
     }
 
     /**
     @notice returns the amount staked for the specific user and token
      */
-    function totalStakedFor(address user, address token) public view returns (uint256) {
+    function totalStakedFor(address user, address token)
+        public
+        view
+        returns (uint256)
+    {
         return _amountStaked[user][token];
     }
 
