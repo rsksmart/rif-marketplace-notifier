@@ -48,9 +48,9 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         address token,
         uint256 amount
     );
-    event FundsWithdrawn(bytes32 hash, uint256 amount, address token);
-    event FundsRefund(bytes32 hash, uint256 amount, address token);
-    event FundsDeposit(bytes32 hash, uint256 amount, address token);
+    event FundsWithdrawn(address provider, bytes32 hash, uint256 amount, address token);
+    event FundsRefund(address provider,bytes32 hash, uint256 amount, address token);
+    event FundsDeposit(address provider,bytes32 hash, uint256 amount, address token);
 
     function initialize() public initializer {
         __Ownable_init();
@@ -216,7 +216,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
             IERC20(token).safeTransfer(msg.sender, amount);
         }
         subscription.balance = subscription.balance.sub(amount);
-        emit FundsWithdrawn(hash, amount, token);
+        emit FundsWithdrawn(msg.sender, hash, amount, token);
     }
 
     /**
@@ -254,7 +254,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
             IERC20(token).safeTransfer(subscription.consumer, amount);
         }
         subscription.balance = subscription.balance.sub(amount);
-        emit FundsRefund(hash, amount, token);
+        emit FundsRefund(msg.sender, hash, amount, token);
     }
 
     /**

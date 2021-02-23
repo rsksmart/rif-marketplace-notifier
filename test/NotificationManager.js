@@ -309,6 +309,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         { from: Consumer, value: 1 }
       )
       expectEvent(receipt, 'FundsDeposit', {
+        provider: Provider,
         hash: subscriptionNativeHash,
         amount: '1',
         token: constants.ZERO_ADDRESS
@@ -346,6 +347,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         { from: Consumer }
       )
       expectEvent(receipt2, 'FundsDeposit', {
+        provider: Provider,
         hash: subscriptionERC20Hash,
         amount: '3',
         token: token.address
@@ -452,6 +454,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         { from: Provider }
       )
       expectEvent(receipt3, 'FundsWithdrawn', {
+        provider: Provider,
         hash: subscriptionNativeHash,
         token: constants.ZERO_ADDRESS,
         amount: '2'
@@ -488,6 +491,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         { from: Provider }
       )
       expectEvent(receipt2, 'FundsWithdrawn', {
+        provider: Provider,
         hash: subscriptionERC20Hash,
         amount: '2',
         token: token.address
@@ -625,6 +629,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         { from: Provider }
       )
       expectEvent(receipt3, 'FundsRefund', {
+        provider: Provider,
         hash: subscriptionNativeHash,
         token: constants.ZERO_ADDRESS,
         amount: '2'
@@ -663,6 +668,7 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         { from: Provider }
       )
       expectEvent(receipt2, 'FundsRefund', {
+        provider: Provider,
         hash: subscriptionERC20Hash,
         amount: '2',
         token: token.address
