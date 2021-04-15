@@ -124,7 +124,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionHash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
     })
     it('should be able to create subscription (ERC20)', async () => {
@@ -146,7 +147,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionHash,
         provider: Provider,
         token: token.address,
-        amount: '1'
+        amount: '1',
+        consumer: Consumer
       })
     })
     it('should not be able to create subscription: token not whitelisted', async () => {
@@ -239,7 +241,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionHash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
       await expectRevert(
         notificationManager.createSubscription(
@@ -298,7 +301,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionNativeHash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       const receipt = await notificationManager.depositFunds(
@@ -335,7 +339,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionERC20Hash,
         provider: Provider,
         token: token.address,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       await token.approve(notificationManager.address, 3, { from: Consumer })
@@ -410,7 +415,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionNativeHash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       await expectRevert(notificationManager.depositFunds(
@@ -444,7 +450,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionNativeHash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       const receipt3 = await notificationManager.withdrawFunds(
@@ -480,7 +487,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionERC20Hash,
         provider: Provider,
         token: token.address,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       const tokenBalance = await token.balanceOf(Provider)
@@ -551,7 +559,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: hash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       await expectRevert(
@@ -584,7 +593,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: hash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       await expectRevert(
@@ -618,7 +628,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionNativeHash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       const balanceBefore = await web3.eth.getBalance(Consumer)
@@ -657,7 +668,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: subscriptionERC20Hash,
         provider: Provider,
         token: token.address,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       const tokenBalance = await token.balanceOf(Consumer)
@@ -728,7 +740,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: hash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       await expectRevert(
@@ -761,7 +774,8 @@ contract('NotificationManager', ([Owner, Consumer, Provider, NotRegisteredProvid
         hash: hash,
         provider: Provider,
         token: constants.ZERO_ADDRESS,
-        amount: '2'
+        amount: '2',
+        consumer: Consumer
       })
 
       await expectRevert(
