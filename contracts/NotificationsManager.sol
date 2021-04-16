@@ -46,7 +46,8 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         bytes32 hash,
         address provider,
         address token,
-        uint256 amount
+        uint256 amount,
+        address consumer
     );
     event FundsWithdrawn(address provider, bytes32 hash, uint256 amount, address token);
     event FundsRefund(address provider,bytes32 hash, uint256 amount, address token);
@@ -306,7 +307,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         subscription.consumer = msg.sender;
         subscription.token = token;
 
-        emit SubscriptionCreated(hash, providerAddress, token, amount);
+        emit SubscriptionCreated(hash, providerAddress, token, amount, msg.sender);
     }
 
     /**
