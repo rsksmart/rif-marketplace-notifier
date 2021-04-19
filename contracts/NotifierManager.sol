@@ -9,9 +9,9 @@ import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
 
-/// @title NotificationsManager
+/// @title NotifierManager
 /// @author Nazar Duchak <nazar@iovlabs.org>
-contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
+contract NotifierManager is OwnableUpgradeable, PausableUpgradeable {
     using ECDSAUpgradeable for bytes32;
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
@@ -33,7 +33,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         mapping(bytes32 => Subscription) subscriptions;
     }
 
-    // Notification subscription plan struct
+    // Notifier subscription plan struct
     struct Subscription {
         address token;
         address consumer;
@@ -114,7 +114,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     function requireWhitelistedProvider(address providerAddress) internal view {
         require(
             isWhitelistedProvider[providerAddress],
-            "NotificationsManager: provider is not whitelisted"
+            "NotifierManager: provider is not whitelisted"
         );
     }
 
@@ -124,7 +124,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     function requireRegisteredProvider(address providerAddress) internal view {
         require(
             bytes(providerRegistry[providerAddress].url).length != 0,
-            "NotificationsManager: Provider is not registered"
+            "NotifierManager: Provider is not registered"
         );
     }
 
@@ -134,7 +134,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     modifier whitelistedToken(address token) {
         require(
             isWhitelistedToken[token],
-            "NotificationsManager: not possible to interact with this token"
+            "NotifierManager: not possible to interact with this token"
         );
         _;
     }
@@ -175,7 +175,7 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
     {
         require(
             bytes(url).length != 0,
-            "NotificationsManager: URL can not be empty"
+            "NotifierManager: URL can not be empty"
         );
         Provider storage provider = providerRegistry[msg.sender];
         provider.url = url;
@@ -194,20 +194,20 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         address token,
         uint256 amount
     ) public whenNotPaused isRegisteredProvider(msg.sender) {
-        require(amount > 0, "NotificationsManager: Nothing to withdraw");
+        require(amount > 0, "NotifierManager: Nothing to withdraw");
         Subscription storage subscription =
             providerRegistry[msg.sender].subscriptions[hash];
         require(
             subscription.providerSignature.length != 0,
-            "NotificationsManager: Subscription does not exist"
+            "NotifierManager: Subscription does not exist"
         );
         require(
             token == subscription.token,
-            "NotificationsManager: Invalid token for subscription"
+            "NotifierManager: Invalid token for subscription"
         );
         require(
             amount <= subscription.balance,
-            "NotificationsManager: Amount is too big"
+            "NotifierManager: Amount is too big"
         );
 
         if (token == address(0)) {
@@ -232,20 +232,20 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         address token,
         uint256 amount
     ) public whenNotPaused isRegisteredProvider(msg.sender) {
-        require(amount > 0, "NotificationsManager: Nothing to refund");
+        require(amount > 0, "NotifierManager: Nothing to refund");
         Subscription storage subscription =
             providerRegistry[msg.sender].subscriptions[hash];
         require(
             subscription.providerSignature.length != 0,
-            "NotificationsManager: Subscription does not exist"
+            "NotifierManager: Subscription does not exist"
         );
         require(
             token == subscription.token,
-            "NotificationsManager: Invalid token for subscription"
+            "NotifierManager: Invalid token for subscription"
         );
         require(
             amount <= subscription.balance,
-            "NotificationsManager: Amount is too big"
+            "NotifierManager: Amount is too big"
         );
 
         if (token == address(0)) {
@@ -283,17 +283,17 @@ contract NotificationsManager is OwnableUpgradeable, PausableUpgradeable {
         require(
             (amount > 0 && token != address(0)) ||
                 (token == address(0) && msg.value > 0),
-            "NotificationsManager: You should deposit funds to be able to create subscription"
+            "NotifierManager: You should deposit funds to be able to create subscription"
         );
         Subscription storage subscription =
             providerRegistry[providerAddress].subscriptions[hash];
         require(
             subscription.consumer == address(0),
-            "NotificationsManager: Subscription already exists"
+            "NotifierManager: Subscription already exists"
         );
         require(
             _recoverSigner(hash, sig) == providerAddress,
-            "NotificationsManager: Invalid signature"
+            "NotifierManager: Invalid signature"
         );
 
         if (token == address(0)) {

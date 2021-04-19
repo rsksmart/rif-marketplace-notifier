@@ -1,13 +1,13 @@
-# RIF Marketplace Notifications
+# RIF Marketplace Notifier
 
 ```
-npm i @rsksmart/rif-marketplace-notifications
+npm i @rsksmart/rif-marketplace-notifier
 ```
 
 **Warning: Contracts in this repo are in alpha state. They have not been audited and are not ready for deployment to main net!
   There might (and most probably will) be changes in the future to its API and working. Also, no guarantees can be made about its stability, efficiency, and security at this stage.**
 
-## NotificationsManager contract
+## NotifierManager contract
 
 ## TypeScript typings
 
@@ -19,4 +19,4 @@ Supported contract's libraries are:
 * `truffle` - `truffle-contracts`
 * `ethers` - `ethers-contracts`
 
-So for example if you want to use Truffle typings then you should import the contract from `@rsksmart/rif-marketplace-notifications/types/truffle/...`.
+So for example if you want to use Truffle typings then you should import the contract from `@rsksmart/rif-marketplace-notifier/types/truffle/...`.
