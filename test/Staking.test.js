@@ -10,30 +10,30 @@ const { toBN } = require('web3-utils')
 const expect = require('chai').expect
 
 const Staking = artifacts.require('Staking')
-const NotificationsManager = artifacts.require('NotificationsManager')
+const NotifierManager = artifacts.require('NotifierManager')
 const ERC20 = artifacts.require('MockERC20')
 
 contract('Staking', ([randomPerson, staker]) => {
   let token
-  let notificationManager
+  let notifierManager
   let staking
 
   beforeEach(async function () {
     // Deploy Storage Manager
-    notificationManager = await upgrades.deployProxy(NotificationsManager, [])
+    notifierManager = await upgrades.deployProxy(NotifierManager, [])
 
     // Deploy token
     token = await ERC20.new('myToken', 'mT', randomPerson, 100000, { from: randomPerson })
     // Deploy Staking
-    staking = await Staking.new(notificationManager.address, { from: randomPerson })
+    staking = await Staking.new(notifierManager.address, { from: randomPerson })
     // White list token
-    await notificationManager.setWhitelistedTokens(token.address, true, { from: randomPerson })
+    await notifierManager.setWhitelistedTokens(token.address, true, { from: randomPerson })
     await staking.setWhitelistedTokens(token.address, true, { from: randomPerson })
     // White list native token
     await staking.setWhitelistedTokens(constants.ZERO_ADDRESS, true, { from: randomPerson })
-    await notificationManager.setWhitelistedTokens(constants.ZERO_ADDRESS, true, { from: randomPerson })
+    await notifierManager.setWhitelistedTokens(constants.ZERO_ADDRESS, true, { from: randomPerson })
     // White list provider
-    await notificationManager.setWhitelistedProvider(staker, true, { from: randomPerson })
+    await notifierManager.setWhitelistedProvider(staker, true, { from: randomPerson })
 
     // distribute tokens
     await token.transfer(staker, 10000, { from: randomPerson })

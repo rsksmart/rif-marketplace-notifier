@@ -1,15 +1,15 @@
 {
-  "name": "@rsksmart/rif-marketplace-notifications",
+  "name": "@rsksmart/rif-marketplace-notifier",
   "version": "0.0.1-dev.1",
-  "description": "Contracts for notifications",
+  "description": "Contracts for notifier",
   "keywords": [
     "RIF",
     "RSK",
     "TRIGGERS"
   ],
-  "homepage": "https://github.com/rsksmart/rif-marketplace-notifications",
+  "homepage": "https://github.com/rsksmart/rif-marketplace-notifier",
   "bugs": {
-    "url": "https://github.com/rsksmart/rif-marketplace-notifications/issues"
+    "url": "https://github.com/rsksmart/rif-marketplace-notifier/issues"
   },
   "license": "MIT",
   "author": {
@@ -28,7 +28,7 @@
   "main": "truffle-config.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rsksmart/rif-marketplace-notifications"
+    "url": "https://github.com/rsksmart/rif-marketplace-notifier"
   },
   "scripts": {
     "test": "truffle test",
@@ -39,7 +39,7 @@
     "lint:solidity": "solhint -f table 'contracts/**/*.sol'",
     "lint": "npm run lint:js && npm run lint:solidity && npm run prettier:solidity",
     "release": "tasegir release --no-docs --no-compile --no-test --no-build",
-    "prepublishOnly": "truffle compile && typechain --target=web3-v1 build/contracts/NotificationsManger.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/NotificationsManger.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/NotificationsManger.json && typechain --target=ethers-v4 build/contracts/NotificationsManger.json && typechain --target=web3-v1 build/contracts/Staking.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/Staking.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/Staking.json && typechain --target=ethers-v4 build/contracts/Staking.json",
+    "prepublishOnly": "truffle compile && typechain --target=web3-v1 build/contracts/NotifierManger.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/NotifierManger.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/NotifierManger.json && typechain --target=ethers-v4 build/contracts/NotifierManger.json && typechain --target=web3-v1 build/contracts/Staking.json && typechain --target=truffle-v4 --outDir ./types/truffle-v4-contracts build/contracts/Staking.json && typechain --target=truffle-v5 --outDir ./types/truffle-v5-contracts build/contracts/Staking.json && typechain --target=ethers-v4 build/contracts/Staking.json",
     "tasegir:link": "ln -s ./node_modules/tasegir/src/config/tsconfig.json ./tsconfig.json && ln -s ./node_modules/tasegir/src/config/eslintrc.js ./.eslintrc.js"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.7.6;
 
-import "./NotificationsManager.sol";
+import "./NotifierManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -14,7 +14,7 @@ contract Staking is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    NotificationsManager public notificationsManager;
+    NotifierManager public notifierManager;
     // amount of tokens per token staked per address [account -> (tokenAddress -> amount)]
     mapping(address => mapping(address => uint256)) internal _amountStaked;
     // total amount staked per token
@@ -41,21 +41,21 @@ contract Staking is Ownable {
 
     /**
     @notice constructor of the contract
-    @param _notificationsManager the notificationsManager which uses this staking contract
+    @param _notifierManager the notifierManager which uses this staking contract
     */
-    constructor(address _notificationsManager) public {
-        notificationsManager = NotificationsManager(_notificationsManager);
+    constructor(address _notifierManager) public {
+        notifierManager = NotifierManager(_notifierManager);
     }
 
     /**
-    @notice set Notifications Manager contract
-    @param _notificationsManager the notificationsManager which uses this staking contract
+    @notice set Notifier Manager contract
+    @param _notifierManager the notifierManager which uses this staking contract
     */
-    function setNotificationsManager(address _notificationsManager)
+    function setNotifierManager(address _notifierManager)
         public
         onlyOwner
     {
-        notificationsManager = NotificationsManager(_notificationsManager);
+        notifierManager = NotifierManager(_notifierManager);
     }
 
     /**
@@ -129,7 +129,7 @@ contract Staking is Ownable {
     }
 
     /**
-    @notice unstake tokens which where previously staked via this function. Only possible when you don't have any active notification subscriptions
+    @notice unstake tokens which where previously staked via this function. Only possible when you don't have any active notifier subscriptions
     @dev
      - if sender does not have nothing staked, the transaction will be reverted with "substraction overflow" error
     @param amount the total amount of tokens to unstake
@@ -147,8 +147,8 @@ contract Staking is Ownable {
         );
         // only allow unstake if there is no utilized capacity
         require(
-            !notificationsManager.hasActiveSubscriptions(msg.sender),
-            "Staking: must have no active subscriptions in NotificationsManager"
+            !notifierManager.hasActiveSubscriptions(msg.sender),
+            "Staking: must have no active subscriptions in NotifierManager"
         );
         if (_isNativeToken(tokenAddress)) {
             (bool success, ) = msg.sender.call{value: amount}("");
