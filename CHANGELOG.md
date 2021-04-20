@@ -1,5 +1,12 @@
 <a name="0.0.1-dev.1"></a>
 
+## 0.0.1-dev.2 (2021-04-20)
+
+### Bug Fixes
+
+- fix `prebuplishOnly` script for generation of typings
+
+
 ## 0.0.1-dev.1 (2021-02-11)
 
 ### Features
