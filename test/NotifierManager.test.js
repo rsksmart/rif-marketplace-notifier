@@ -13,7 +13,7 @@ const NotifierManagerV2 = artifacts.require('NotifierManagerV2')
 
 const ERC20 = artifacts.require('MockERC20')
 
-function fixSignature (signature) {
+function fixSignature(signature) {
   // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
   // signature malleability if version is 0/1
   // see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L465
@@ -32,6 +32,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
   const subscriptionNativeHash = web3.utils.sha3(JSON.stringify({ testData: '1' }))
   const subscriptionERC20Hash = web3.utils.sha3(JSON.stringify({ testData: '2' }))
   const url = 'testUrl'
+  const apiKey = 'testApiKey'
   let notifierManager
   let token
   let signature
@@ -64,7 +65,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
       )
     })
     it.skip('should not be able to deposit for subscription for not whitelisted provider', async () => {
-      await expectRevert(notifierManager.depositFunds(NotWhitelistedProvider, subscriptionHash, constants.ZERO_ADDRESS, 0, { from: NotWhitelistedProvider, value: 1 }),
+      await expectRevert(notifierManager.depositFunds(NotWhitelistedProvider, subscriptionHash, constants.ZERO_ADDRESS, 0, apiKey, { from: NotWhitelistedProvider, value: 1 }),
         'NotifierManager: provider is not whitelisted'
       )
     })
@@ -118,6 +119,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -125,7 +127,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
     })
     it('should be able to create subscription (ERC20)', async () => {
@@ -141,6 +144,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         token.address,
         1,
+        apiKey,
         { from: Consumer }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -148,7 +152,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: token.address,
         amount: '1',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
     })
     it('should not be able to create subscription: token not whitelisted', async () => {
@@ -159,6 +164,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           Owner,
           1,
+          apiKey,
           { from: Consumer }
         ),
         'NotifierManager: not possible to interact with this token'
@@ -172,6 +178,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           constants.ZERO_ADDRESS,
           1,
+          apiKey,
           { from: Consumer }
         ),
         'NotifierManager: provider is not whitelisted'
@@ -189,6 +196,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           constants.ZERO_ADDRESS,
           1,
+          apiKey,
           { from: Consumer, value: 0 }
         ),
         'NotifierManager: You should deposit funds to be able to create subscription'
@@ -200,6 +208,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           token.address,
           0,
+          apiKey,
           { from: Consumer, value: 1 }
         ),
         'NotifierManager: You should deposit funds to be able to create subscription'
@@ -213,6 +222,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           constants.ZERO_ADDRESS,
           0,
+          apiKey,
           { from: Consumer, value: 1 }
         ),
         'NotifierManager: Provider is not registered'
@@ -235,6 +245,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -242,7 +253,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
       await expectRevert(
         notifierManager.createSubscription(
@@ -251,6 +263,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           constants.ZERO_ADDRESS,
           2,
+          apiKey,
           { from: Consumer, value: 2 }
         ),
         'NotifierManager: Subscription already exist'
@@ -274,9 +287,29 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
           signature,
           constants.ZERO_ADDRESS,
           2,
+          apiKey,
           { from: Consumer, value: 2 }
         ),
         'NotifierManager: Invalid signature'
+      )
+    })
+    it('should not be able to create subscription: apikey cannot be empty', async () => {
+      expectEvent(await notifierManager.registerProvider('testUrl', { from: Provider }), 'ProviderRegistered', {
+        provider: Provider,
+        url
+      })
+
+      await expectRevert(
+        notifierManager.createSubscription(
+          Provider,
+          subscriptionHash,
+          signature,
+          constants.ZERO_ADDRESS,
+          2,
+          '',
+          { from: Consumer, value: 2 }
+        ),
+        'NotifierManager: apiKey cannot be empty'
       )
     })
   })
@@ -295,6 +328,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signatureNative,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -302,7 +336,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       const receipt = await notifierManager.depositFunds(
@@ -340,7 +375,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: token.address,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       await token.approve(notifierManager.address, 3, { from: Consumer })
@@ -409,6 +445,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signatureNative,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -416,7 +453,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       await expectRevert(notifierManager.depositFunds(
@@ -426,7 +464,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         1,
         { from: Consumer }
       ),
-      'NotifierManager: Invalid token for subscription')
+        'NotifierManager: Invalid token for subscription')
     })
   })
 
@@ -444,6 +482,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signatureNative,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -451,7 +490,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       const receipt3 = await notifierManager.withdrawFunds(
@@ -481,6 +521,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signatureERC20,
         token.address,
         2,
+        apiKey,
         { from: Consumer }
       )
       expectEvent(receipt, 'SubscriptionCreated', {
@@ -488,7 +529,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: token.address,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       const tokenBalance = await token.balanceOf(Provider)
@@ -553,6 +595,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -560,7 +603,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       await expectRevert(
@@ -587,6 +631,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -594,7 +639,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       await expectRevert(
@@ -622,6 +668,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signatureNative,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -629,7 +676,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       const balanceBefore = await web3.eth.getBalance(Consumer)
@@ -662,6 +710,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signatureERC20,
         token.address,
         2,
+        apiKey,
         { from: Consumer }
       )
       expectEvent(receipt, 'SubscriptionCreated', {
@@ -669,7 +718,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: token.address,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       const tokenBalance = await token.balanceOf(Consumer)
@@ -734,6 +784,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -741,7 +792,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       await expectRevert(
@@ -768,6 +820,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         signature,
         constants.ZERO_ADDRESS,
         2,
+        apiKey,
         { from: Consumer, value: 2 }
       )
       expectEvent(receipt2, 'SubscriptionCreated', {
@@ -775,7 +828,8 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
         provider: Provider,
         token: constants.ZERO_ADDRESS,
         amount: '2',
-        consumer: Consumer
+        consumer: Consumer,
+        apiKey
       })
 
       await expectRevert(
@@ -818,7 +872,7 @@ contract('NotifierManager', ([Owner, Consumer, Provider, NotRegisteredProvider, 
       await notifierManager.pause({ from: Owner })
       expect(await notifierManager.paused()).to.be.eql(true)
       await expectRevert(
-        notifierManager.createSubscription(Provider, subscriptionHash, signature, constants.ZERO_ADDRESS, 2, { from: Consumer }),
+        notifierManager.createSubscription(Provider, subscriptionHash, signature, constants.ZERO_ADDRESS, 2, apiKey, { from: Consumer }),
         'Pausable: paused'
       )
     })

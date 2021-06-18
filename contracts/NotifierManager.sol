@@ -39,6 +39,7 @@ contract NotifierManager is OwnableUpgradeable, PausableUpgradeable {
         address consumer;
         bytes providerSignature;
         uint256 balance;
+        string apiKey;
     }
 
     event ProviderRegistered(address provider, string url);
@@ -47,7 +48,8 @@ contract NotifierManager is OwnableUpgradeable, PausableUpgradeable {
         address provider,
         address token,
         uint256 amount,
-        address consumer
+        address consumer,
+        string apiKey
     );
     event FundsWithdrawn(address provider, bytes32 hash, uint256 amount, address token);
     event FundsRefund(address provider,bytes32 hash, uint256 amount, address token);
@@ -272,7 +274,8 @@ contract NotifierManager is OwnableUpgradeable, PausableUpgradeable {
         bytes32 hash,
         bytes memory sig,
         address token,
-        uint256 amount
+        uint256 amount,
+        string memory apiKey
     )
         public
         payable
@@ -295,7 +298,11 @@ contract NotifierManager is OwnableUpgradeable, PausableUpgradeable {
             _recoverSigner(hash, sig) == providerAddress,
             "NotifierManager: Invalid signature"
         );
-
+        require(
+            bytes(apiKey).length != 0,
+            "NotifierManager: apiKey cannot be empty"
+        );
+        
         if (token == address(0)) {
             subscription.balance = subscription.balance.add(msg.value);
         } else {
@@ -306,8 +313,9 @@ contract NotifierManager is OwnableUpgradeable, PausableUpgradeable {
         subscription.providerSignature = sig;
         subscription.consumer = msg.sender;
         subscription.token = token;
+        subscription.apiKey = apiKey;
 
-        emit SubscriptionCreated(hash, providerAddress, token, amount, msg.sender);
+        emit SubscriptionCreated(hash, providerAddress, token, amount, msg.sender, apiKey);
     }
 
     /**
