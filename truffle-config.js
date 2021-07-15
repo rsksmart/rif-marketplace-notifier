@@ -8,7 +8,7 @@
  *
  * truffleframework.com/docs/advanced/configuration
  *
- * To deploy via Infura you'll need a wallet provider (like truffle-hdwallet-provider)
+ * To deploy via Infura you'll need a wallet provider (like @truffle/hdwallet-provider)
  * to sign your transactions before they're sent to a remote public node. Infura accounts
  * are available for free at: infura.io/register.
  *
@@ -18,15 +18,15 @@
  *
  */
 
-// const HDWalletProvider = require('truffle-hdwallet-provider');
-// const infuraKey = "fj4jll3k.....";
-//
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
-
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+const accountSecret = process.env['ACCOUNT_SECRET']
+const nodeUrl = process.env['NODE_URL']
+const provider = {
+  providerOrUrl: nodeUrl,
+  ...accountSecret && accountSecret.length === 64 ? { privateKeys: [accountSecret] } : { mnemonic: accountSecret }
+}
 module.exports = {
   plugins: ['truffle-security'],
-
   /**
    * Networks define how you connect to your ethereum client and let you set the
    * defaults web3 uses to send transactions. If you don't specify one truffle
@@ -38,34 +38,43 @@ module.exports = {
    */
 
   networks: {
-    ganache: {
-      host: '127.0.0.1', // Localhost (default: none)
-      port: 8545, // Standard Ethereum port (default: none)
-      network_id: '*' // Any network (default: none)
-    },
-    mainnet: {
-      host: '127.0.0.1', // Localhost (default: none)
-      port: 8545, // Standard Ethereum port (default: none)
-      network_id: 30,
-      gasPrice: 67e6,
-      // gas: 5500000,
-      skipDryRun: true,
-      production: true
-    },
-    testnet: {
-      host: '127.0.0.1', // Localhost (default: none)
-      port: 8545, // Standard Ethereum port (default: none)
-      network_id: 31,
-      gasPrice: 67e6,
-      // gas: 5500000,
-      skipDryRun: true
-    }
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
     // You should run a client (like ganache-cli, geth or parity) in a separate terminal
     // tab if you use this network and you must also set the `host`, `port` and `network_id`
     // options below to some value.
     //
+    // development: {
+    //  host: "127.0.0.1",     // Localhost (default: none)
+    //  port: 8545,            // Standard Ethereum port (default: none)
+    //  network_id: "*",       // Any network (default: none)
+    // },
+    regtest: {
+      host: "127.0.0.1", // Localhost redirection
+      port: 4444, // Standard RSK port (default: none)
+      network_id: 33 // Regtest network
+    },
+    ganache: {
+      host: "127.0.0.1", // Localhost (default: none)
+      port: 8545, // Standard Ethereum port (default: none)
+      network_id: "*" // Any network (default: none)
+    },
+    mainnet: {
+      provider: () => new HDWalletProvider(provider),
+      network_id: 30,
+      gasPrice: 67e6,
+      // gas: 5500000,
+      networkCheckTimeout: 10e3,
+      skipDryRun: true
+    },
+    testnet: {
+      provider: () => new HDWalletProvider(provider),
+      network_id: 31,
+      gasPrice: 67e6,
+      // gas: 5500000,
+      networkCheckTimeout: 10e3,
+      skipDryRun: true,
+    }
     // Another network with more advanced options...
     // advanced: {
     // port: 8777,             // Custom port
@@ -75,6 +84,7 @@ module.exports = {
     // from: <address>,        // Account to send txs from (default: accounts[0])
     // websockets: true        // Enable EventEmitter interface for web3 (default: false)
     // },
+
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
     // ropsten: {
@@ -85,6 +95,7 @@ module.exports = {
     // timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
     // skipDryRun: true     // Skip dry run before migrations? (default: false for public nets )
     // },
+
     // Useful for private networks
     // private: {
     // provider: () => new HDWalletProvider(mnemonic, `https://network.io`),
