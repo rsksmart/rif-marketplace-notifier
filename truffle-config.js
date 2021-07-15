@@ -50,7 +50,8 @@ module.exports = {
     //  network_id: "*",       // Any network (default: none)
     // },
     regtest: {
-      host: "127.0.0.1", // Localhost redirection
+      // host: "127.0.0.1", // Localhost redirection
+      host: "http://mkt-cache-01.aws-us-west-2.dev.marketplace.rifcomputing.net", // direct link to the devnet cache regtest node
       port: 4444, // Standard RSK port (default: none)
       network_id: 33 // Regtest network
     },
