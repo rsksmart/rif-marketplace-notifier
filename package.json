@@ -43,7 +43,7 @@
     "tasegir:link": "ln -s ./node_modules/tasegir/src/config/tsconfig.json ./tsconfig.json && ln -s ./node_modules/tasegir/src/config/eslintrc.js ./.eslintrc.js"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^3.4.0",
+    "@openzeppelin/contracts": "^4.4.1",
     "@openzeppelin/contracts-upgradeable": "^3.4.0"
   },
   "devDependencies": {
