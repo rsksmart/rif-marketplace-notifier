@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^3.4.0",
-    "@openzeppelin/contracts-upgradeable": "^3.4.0"
+    "@openzeppelin/contracts-upgradeable": "^4.4.1"
   },
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.6",
